@@ -325,6 +325,9 @@
                   '<span class="pay__unit">VND / month &middot; entry</span></span>' +
                 '<span><span class="pay__figure">' + role.salary.mid + "</span> " +
                   '<span class="pay__unit">VND / month &middot; 2&ndash;4 years</span></span>' +
+                '<span class="basis basis--' + role.salary.basis + '">' +
+                  (role.salary.basis === "measured" ? "Measured" : "Estimated") +
+                "</span>" +
               "</div>") +
             block("Who hires for this", "<p>" + role.employers + "</p>") +
             '<p class="honest"><span class="honest__label">The honest catch</span>' + role.honest + "</p>" +
@@ -363,6 +366,10 @@
       "</section>" +
 
       '<section class="section">' +
+        '<div class="note">' +
+          '<span class="note__label">The cheapest raise on this page</span>' +
+          "<p>" + r.payNote + "</p>" +
+        "</div>" +
         '<p class="caveat"><b>On the salary figures &mdash; reviewed ' + r.salaryNote.reviewed + ".</b> " +
           r.salaryNote.body + "</p>" +
       "</section>" +

@@ -713,6 +713,21 @@ code, kbd, .mono {
 .pay__figure { font-variant-numeric: tabular-nums; font-weight: 600; }
 .pay__unit { color: var(--ink-faint); font-size: var(--fs-fine); }
 
+/* Says whether a figure came from survey data or from inference. A reader
+   deserves to know which numbers to lean on. */
+.basis {
+  align-self: center;
+  margin-left: auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  border: 1px solid currentColor;
+}
+.basis--measured  { color: var(--good); }
+.basis--estimated { color: var(--ink-faint); }
+
 .honest {
   padding: 0.8rem 1rem;
   border-left: 3px solid var(--amber);

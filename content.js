@@ -183,8 +183,10 @@ const CONTENT = {
 
     salaryNote: {
       reviewed: "August 2026",
-      body: "Salary ranges are gross monthly VND for the Vietnam market, and they are <strong>orientation, not quotes</strong> — they move with the company, the city and the year. Before you rely on any number here, check it against the current <em>ITviec</em>, <em>VietnamWorks</em> and <em>TopDev</em> salary reports, all of which publish free annual data. If a figure below is out of date, it should be corrected."
+      body: "Gross monthly VND. Figures marked <strong>measured</strong> come from the ITviec 2025&ndash;2026 salary report (1,839 respondents) cross-checked against live bank postings; figures marked <strong>estimated</strong> are inferred from adjacent roles and are the least reliable thing on this site. Two caveats on even the measured ones: ITviec surveys IT professionals, so bank salaries can sit lower, and every number moves with the company, the city and the year. Check the current ITviec, VietnamWorks and TopDev reports before you rely on any of it."
     },
+
+    payNote: "Roles where English is required pay about 23% more than those where it is not — the largest single premium found in Vietnamese finance-analyst salary data. It is worth more than any tool on the ladder.",
 
     filters: {
       distance: [
@@ -221,9 +223,9 @@ const CONTENT = {
           "You understand what the business is actually trying to do, which is most of the job."
         ],
         add: ["SQL", "Excel to an analyst standard", "Power BI or Tableau", "Python (eventually)"],
-        salary: { junior: "15–25M", mid: "25–45M" },
+        salary: { junior: "10–20M", mid: "25–40M", basis: "measured" },
         employers: "Techcombank, VPBank, MB Bank, MoMo, VNPay, ZaloPay, Shopee, Grab, FE Credit",
-        honest: "The title is used loosely. Some \"data analyst\" jobs are really reporting jobs where you rebuild the same spreadsheet weekly. Ask in the interview what proportion of the work is new analysis versus recurring reports."
+        honest: "The title is used loosely — some \"data analyst\" jobs are really reporting jobs where you rebuild the same spreadsheet weekly. Ask what proportion of the work is new analysis versus recurring reports. Also be realistic about entry: bank BI postings routinely ask for two years, so the usual route in is a junior reporting or operations role first."
       },
       {
         id: "business-analyst",
@@ -244,9 +246,9 @@ const CONTENT = {
           "You can spot when a proposed process breaks a regulatory or accounting rule."
         ],
         add: ["SQL (to check your own assumptions)", "Process mapping", "Writing clear specifications", "Basic understanding of how systems talk to each other"],
-        salary: { junior: "15–25M", mid: "30–50M" },
+        salary: { junior: "12–18M", mid: "25–37M", basis: "measured" },
         employers: "Core banking vendors, VPBank, Techcombank, Manulife, Prudential, VNPay, the Big Four consulting arms",
-        honest: "Lowest coding requirement on this list, which makes it the most competitive entry point — a lot of people are trying the same door. Strong writing is what separates candidates here, more than tools."
+        honest: "Two things to weigh. It has the lowest coding requirement here, which makes it the most competitive door — a lot of people are trying it, and strong writing separates candidates more than tools do. It also pays measurably less than data analyst at every experience level. Easiest entry, lowest ceiling: that trade is worth making deliberately rather than by accident."
       },
       {
         id: "fpna",
@@ -266,9 +268,9 @@ const CONTENT = {
           "Your degree is the qualification, not a liability you're compensating for."
         ],
         add: ["Power Query and Power Pivot", "SQL", "Python for repetitive work", "Power BI"],
-        salary: { junior: "18–30M", mid: "35–60M" },
+        salary: { junior: "12–20M", mid: "23–33M", basis: "measured" },
         employers: "Any company with a real finance function — MNC shared-service centres in Ho Chi Minh City and Hanoi hire heavily here",
-        honest: "The safest option on this list, and the one with the lowest ceiling if you stop learning once the reporting runs itself. The automation skills are what stop it becoming a dead end."
+        honest: "The safest option here, and the one with the lowest ceiling if you stop learning once the reporting runs itself. Two levers matter more than the tools: English-required roles pay around 23% more, and the automation skills are what stop this becoming a dead end."
       },
       {
         id: "product-analyst",
@@ -289,7 +291,7 @@ const CONTENT = {
           "You know which regulatory constraints are real and which are assumed."
         ],
         add: ["SQL", "Experiment design and reading an A/B test honestly", "Product analytics tools", "Writing short, decisive documents"],
-        salary: { junior: "20–35M", mid: "40–70M" },
+        salary: { junior: "15–25M", mid: "30–45M", basis: "estimated" },
         employers: "MoMo, VNPay, ZaloPay, Grab Financial, Shopee, Tiki, Finhay, Infina",
         honest: "Rarely a graduate role. The usual path is one to two years as a data or business analyst first, then a move sideways. Treat it as a two-year target, not a first job."
       },
@@ -312,9 +314,9 @@ const CONTENT = {
           "You understand the regulatory frame the models have to live inside."
         ],
         add: ["Python or R", "SQL", "Applied statistics and model validation", "Model documentation"],
-        salary: { junior: "18–30M", mid: "35–60M" },
+        salary: { junior: "15–25M", mid: "30–45M", basis: "estimated" },
         employers: "FE Credit, Home Credit, Techcombank, VPBank, MB Bank, Shinhan, consumer-lending and BNPL startups",
-        honest: "The most technical role here and the one where a weak statistics background will actually block you. If regression and hypothesis testing were a struggle at university, be honest with yourself before committing."
+        honest: "The most technical role here, and the one where a weak statistics background genuinely blocks you — if regression and hypothesis testing were a struggle at university, be honest with yourself first. Also note the entry point is narrow: bank postings for scorecard and PD/LGD modelling routinely ask for eight years. Realistically you arrive here from risk operations or data analysis, not from graduation."
       },
       {
         id: "regtech",
@@ -335,7 +337,7 @@ const CONTENT = {
           "Attention to documentation, which is half of compliance work."
         ],
         add: ["SQL", "Rule tuning and basic anomaly detection", "Python for investigation work", "Reporting tools"],
-        salary: { junior: "18–30M", mid: "35–55M" },
+        salary: { junior: "15–25M", mid: "28–40M", basis: "estimated" },
         employers: "All licensed banks and payment institutions, plus regional crypto exchanges",
         honest: "Steady, well-paid and genuinely useful, but the work is more procedural than it looks from outside. It suits people who like being right more than people who like building things."
       }
