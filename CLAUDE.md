@@ -47,6 +47,31 @@ Structure borrows finance's own discipline: hairline rules, column grids, tabula
   `prefers-color-scheme` media query in **both** directions — style through tokens, never inside the query.
 - All text clears **4.5:1** contrast in both themes. Verify after any palette change.
 
+## Voice
+
+**An experienced mentor talking to a first or second year student.** Short sentences. Say what to do.
+
+Things that broke this before and should not come back:
+
+- **Don't argue with the reader.** No proving the site is credible, no "that's not me being
+  encouraging, that's the employer saying it." They already clicked.
+- **Evidence goes in one line at the bottom of a page**, never mid-paragraph. No per-item source
+  badges — they made the page read like a lab report.
+- **No meta-commentary.** Don't write about "this site", "this page", or how the content was decided.
+- Warm, not cheerful. Specific, not hedged.
+
+## Interaction
+
+**One disclosure component, `panel()` in `app.js`.** If something needs to expand, use it. Do not
+invent a second kind — an earlier version had five different interaction patterns (chip filters, card
+disclosures, an exclusive accordion, a quiz, mark-as-done buttons) and became hard to navigate.
+
+The roles page is a `.ledger` table: scannable rows, click one to open it underneath. Rows are real
+`<button>` elements so keyboard support comes free.
+
+The quiz is the only stateful feature. `localStorage` holds exactly two keys: `ft-theme` and `ft-rung`.
+Resist adding a third.
+
 ## Content rules
 
 These exist because the site's hardest constraint is not being daunting:

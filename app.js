@@ -1,8 +1,11 @@
 /* =========================================================================
    app.js — hash router and page rendering.
+
    Plain scripts and globals, no ES modules: the bundled single-file build
-   has to work when opened directly from disk (file://), where modules are
-   blocked by the browser's origin rules.
+   has to work when opened directly from disk (file://).
+
+   One disclosure pattern is used everywhere — panel() below. If you need
+   something to expand, use it. Don't invent a second kind.
    ========================================================================= */
 
 (function () {
@@ -12,9 +15,7 @@
   var stepsList = document.getElementById("steps-list");
   var main = document.getElementById("main");
 
-  /* ---- Theme ------------------------------------------------------------
-     The published Artifact stamps data-theme on <html> from the viewer's own
-     toggle. We use the same attribute so both paths agree. */
+  /* ---- Theme ------------------------------------------------------------ */
 
   var THEME_KEY = "ft-theme";
   var toggle = document.getElementById("theme-toggle");
@@ -48,25 +49,23 @@
     try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* private mode */ }
   });
 
-  /* ---- Progress ---------------------------------------------------------
-     current: the rung the reader is on (1–5), or 6 once the ladder is cleared.
-     done:    rungs they have ticked off by hand.
-     Both survive a reload; neither is required for the site to work. */
+  /* ---- The one thing we remember ---------------------------------------
+     Which rung the reader was told to start on. Nothing else is stored. */
 
-  var PROGRESS_KEY = "ft-progress";
+  var RUNG_KEY = "ft-rung";
 
-  function loadProgress() {
+  function loadRung() {
     try {
-      var raw = JSON.parse(localStorage.getItem(PROGRESS_KEY));
-      if (raw && typeof raw === "object") {
-        return { current: raw.current || null, done: Array.isArray(raw.done) ? raw.done : [] };
-      }
-    } catch (e) { /* corrupt or unavailable — fall through */ }
-    return { current: null, done: [] };
+      var n = Number(localStorage.getItem(RUNG_KEY));
+      return n >= 1 && n <= CONTENT.ladder.rungs.length + 1 ? n : null;
+    } catch (e) { return null; }
   }
 
-  function saveProgress(p) {
-    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); } catch (e) { /* private mode */ }
+  function saveRung(n) {
+    try {
+      if (n === null) localStorage.removeItem(RUNG_KEY);
+      else localStorage.setItem(RUNG_KEY, String(n));
+    } catch (e) { /* private mode */ }
   }
 
   function rungByN(n) {
@@ -76,7 +75,7 @@
     return null;
   }
 
-  /* ---- Small helpers ---------------------------------------------------- */
+  /* ---- Helpers ----------------------------------------------------------- */
 
   function stepByRoute(route) {
     for (var i = 0; i < CONTENT.steps.length; i++) {
@@ -110,34 +109,31 @@
       "</aside>";
   }
 
-  /* ---- Pages ------------------------------------------------------------ */
-
-  /* A returning reader should land on their next action, not the front door. */
-  function renderResume() {
-    var p = loadProgress();
-    if (!p.current && !p.done.length) return "";
-
-    var total = CONTENT.ladder.rungs.length;
-    var what, link;
-
-    if (p.current && p.current > total) {
-      what = "You have cleared all five rungs.";
-      link = '<a class="btn" href="#/hired">Go to step 4</a>';
-    } else if (p.current) {
-      var rung = rungByN(p.current);
-      what = "You are on rung " + rung.n + " &mdash; " + rung.name + ".";
-      link = '<a class="btn" href="#/ladder">Pick up where you left off</a>';
-    } else {
-      what = p.done.length + " of " + total + " rungs marked done.";
-      link = '<a class="btn" href="#/ladder">Back to the ladder</a>';
-    }
-
-    return '<section class="section"><div class="resume">' +
-      '<p class="resume__lead">Welcome back</p>' +
-      '<p class="resume__what">' + what + "</p>" +
-      '<div class="resume__row">' + link + "</div>" +
-      "</div></section>";
+  function block(label, inner) {
+    return '<div class="detail-block">' +
+      '<span class="detail-block__label">' + label + "</span>" + inner +
+      "</div>";
   }
+
+  function list(items) {
+    return "<ul>" + items.map(function (i) { return "<li>" + i + "</li>"; }).join("") + "</ul>";
+  }
+
+  /* The only disclosure component on the site. `title` may contain markup. */
+  function panel(title, hint, body, opts) {
+    opts = opts || {};
+    return '<details class="panel"' +
+        (opts.open ? " open" : "") +
+        (opts.group ? ' name="' + opts.group + '"' : "") + ">" +
+      '<summary class="panel__head">' +
+        '<span class="panel__title">' + title + "</span>" +
+        (hint ? '<span class="panel__hint">' + hint + "</span>" : "") +
+      "</summary>" +
+      '<div class="panel__body">' + body + "</div>" +
+      "</details>";
+  }
+
+  /* ---- Home -------------------------------------------------------------- */
 
   function renderHome() {
     var h = CONTENT.home;
@@ -151,15 +147,13 @@
         "</a>";
     }).join("");
 
-    var why = h.why.map(function (p) { return "<p>" + p + "</p>"; }).join("");
-
     return '<div class="page">' +
 
       '<header class="hero">' +
         '<h1 class="hero__title">' + h.title + "</h1>" +
         '<p class="hero__lede">' + h.lede + "</p>" +
         '<p class="hero__meta">' +
-          "<span>Free and open</span>" +
+          "<span>Free</span>" +
           "<span>" + CONTENT.meta.readingTime + "</span>" +
           "<span>Updated " + CONTENT.meta.updated + "</span>" +
         "</p>" +
@@ -169,8 +163,6 @@
         "</a>" +
       "</header>" +
 
-      renderResume() +
-
       '<section class="section">' +
         '<div class="note">' +
           '<span class="note__label">' + h.promise.label + "</span>" +
@@ -179,23 +171,23 @@
       "</section>" +
 
       '<section class="section">' +
-        '<p class="eyebrow">The path &mdash; four steps</p>' +
+        '<p class="eyebrow">Four steps</p>' +
         '<div class="path">' + path + "</div>" +
       "</section>" +
 
       '<section class="section prose">' +
-        "<h2>Why this exists</h2>" +
-        why +
+        "<h2>Why bother</h2>" +
+        h.why.map(function (p) { return "<p>" + p + "</p>"; }).join("") +
       "</section>" +
 
       "</div>";
   }
 
+  /* ---- Step 1: basics ---------------------------------------------------- */
+
   function renderBasics() {
     var b = CONTENT.basics;
     var step = stepByRoute("#/basics");
-
-    var intro = b.intro.map(function (p) { return "<p>" + p + "</p>"; }).join("");
 
     var territories = b.territories.map(function (t) {
       var reach = t.fit === "close" ? "Within reach"
@@ -217,6 +209,13 @@
         "</tr>";
     }).join("");
 
+    var decoderTable = '<div class="table-wrap">' +
+      '<table class="decoder">' +
+        "<thead><tr><th>Word</th><th>What it means</th><th>What it's already like</th></tr></thead>" +
+        "<tbody>" + rows + "</tbody>" +
+      "</table>" +
+    "</div>";
+
     return '<div class="page">' +
 
       '<header class="page__head">' +
@@ -226,7 +225,9 @@
 
       tldr(b.tldr) +
 
-      '<section class="section prose">' + intro + "</section>" +
+      '<section class="section prose">' +
+        b.intro.map(function (p) { return "<p>" + p + "</p>"; }).join("") +
+      "</section>" +
 
       '<section class="section">' +
         "<h2>The four territories</h2>" +
@@ -234,16 +235,9 @@
       "</section>" +
 
       '<section class="section">' +
-        "<h2>The vocabulary, decoded</h2>" +
+        "<h2>The vocabulary</h2>" +
         '<p class="prose">' + b.decoderIntro + "</p>" +
-        '<div class="table-wrap">' +
-          '<table class="decoder">' +
-            "<thead><tr>" +
-              "<th>Word</th><th>What it means</th><th>What it is already like</th>" +
-            "</tr></thead>" +
-            "<tbody>" + rows + "</tbody>" +
-          "</table>" +
-        "</div>" +
+        panel("The words, decoded", b.decoder.length + " terms", decoderTable) +
       "</section>" +
 
       '<section class="section">' +
@@ -257,84 +251,50 @@
       "</div>";
   }
 
-  /* ---- Step 2: roles ---------------------------------------------------- */
-
-  var DISTANCE_WORDS = ["A short step", "A real jump", "A long road"];
-  var CODING_WORDS = ["Almost none", "Some", "Most days"];
-
-  function meter(label, value, words) {
-    var dots = "";
-    for (var i = 1; i <= 3; i++) {
-      dots += '<span class="meter__dot' + (i <= value ? " meter__dot--on" : "") + '"></span>';
-    }
-    return '<li class="meter">' +
-      "<span>" + label + "</span>" +
-      '<span class="meter__dots" aria-hidden="true">' + dots + "</span>" +
-      "<span>" + words[value - 1] + "</span>" +
-      "</li>";
-  }
-
-  function block(label, inner) {
-    return '<div class="detail-block">' +
-      '<span class="detail-block__label">' + label + "</span>" + inner +
-      "</div>";
-  }
-
-  function list(items) {
-    return "<ul>" + items.map(function (i) { return "<li>" + i + "</li>"; }).join("") + "</ul>";
-  }
-
-  function chips(name, options) {
-    return options.map(function (o) {
-      var pressed = o.value === "all";
-      return '<button class="chip" type="button" data-filter="' + name + '" data-value="' + o.value +
-        '" aria-pressed="' + pressed + '">' + o.label + "</button>";
-    }).join("");
-  }
+  /* ---- Step 2: roles, as a ledger ---------------------------------------
+     A table you can scan top to bottom. Click a row, it opens underneath.
+     Each row is a real <button>, so keyboard support comes free. */
 
   function renderRoles() {
     var r = CONTENT.roles;
     var step = stepByRoute("#/roles");
 
-    var cards = r.items.map(function (role) {
-      return '<article class="role" data-distance="' + role.distance + '" data-coding="' + role.coding + '">' +
+    var head = '<div class="ledger__head" aria-hidden="true">' +
+      "<span>" + r.tableHead.role + "</span>" +
+      "<span>" + r.tableHead.distance + "</span>" +
+      "<span>" + r.tableHead.coding + "</span>" +
+      "<span>" + r.tableHead.pay + "</span>" +
+      "</div>";
 
-        '<header class="role__head">' +
-          '<h3 class="role__name">' + role.name + "</h3>" +
-          '<span class="role__context">' + role.context + "</span>" +
-        "</header>" +
+    var items = r.items.map(function (role) {
+      var bodyId = "role-" + role.id;
+      var distance = r.distanceLabels[role.distance - 1];
+      var coding = r.codingLabels[role.coding - 1];
 
+      var body =
         '<p class="role__one">' + role.oneLine + "</p>" +
+        '<div class="role__detail">' +
+          block("A normal day", list(role.day)) +
+          block("What already transfers", list(role.transfers)) +
+          block("What to add", '<ul class="tags">' + role.add.map(function (a) {
+            return '<li><span class="term">' + a + "</span></li>";
+          }).join("") + "</ul>") +
+          block("After two to four years", '<p class="pay__figure">' + role.salary.mid + " VND / month</p>") +
+          block("Who hires for this", "<p>" + role.employers + "</p>") +
+          '<p class="watch"><span class="watch__label">Worth knowing</span>' + role.watch + "</p>" +
+        "</div>";
 
-        '<ul class="meters">' +
-          meter("Distance from finance", role.distance, DISTANCE_WORDS) +
-          meter("Code required", role.coding, CODING_WORDS) +
-        "</ul>" +
-
-        '<details class="role__more">' +
-          "<summary>What the job is actually like</summary>" +
-          '<div class="role__detail">' +
-            block("A normal day", list(role.day)) +
-            block("What already transfers", list(role.transfers)) +
-            block("What to add", '<ul class="tags">' + role.add.map(function (a) {
-              return '<li><span class="term">' + a + "</span></li>";
-            }).join("") + "</ul>") +
-            block("Typical pay",
-              '<div class="pay">' +
-                '<span><span class="pay__figure">' + role.salary.junior + "</span> " +
-                  '<span class="pay__unit">VND / month &middot; entry</span></span>' +
-                '<span><span class="pay__figure">' + role.salary.mid + "</span> " +
-                  '<span class="pay__unit">VND / month &middot; 2&ndash;4 years</span></span>' +
-                '<span class="basis basis--' + role.salary.basis + '">' +
-                  (role.salary.basis === "measured" ? "Measured" : "Estimated") +
-                "</span>" +
-              "</div>") +
-            block("Who hires for this", "<p>" + role.employers + "</p>") +
-            '<p class="honest"><span class="honest__label">The honest catch</span>' + role.honest + "</p>" +
-          "</div>" +
-        "</details>" +
-
-        "</article>";
+      return '<div class="ledger__item">' +
+        '<button class="ledger__row" type="button" aria-expanded="false" aria-controls="' + bodyId + '">' +
+          '<span class="ledger__name">' + role.name +
+            '<span class="ledger__ctx">' + role.context + "</span>" +
+          "</span>" +
+          '<span class="ledger__cell"><span class="ledger__key">' + r.tableHead.distance + "</span>" + distance + "</span>" +
+          '<span class="ledger__cell"><span class="ledger__key">' + r.tableHead.coding + "</span>" + coding + "</span>" +
+          '<span class="ledger__cell ledger__pay"><span class="ledger__key">' + r.tableHead.pay + "</span>" + role.salary.junior + "</span>" +
+        "</button>" +
+        '<div class="ledger__body" id="' + bodyId + '" hidden>' + body + "</div>" +
+        "</div>";
     }).join("");
 
     return '<div class="page">' +
@@ -351,18 +311,8 @@
       "</section>" +
 
       '<section class="section">' +
-        '<div class="filters">' +
-          '<div class="filter-group">' +
-            '<span class="filter-group__label">Distance from finance</span>' +
-            '<div class="chips">' + chips("distance", r.filters.distance) + "</div>" +
-          "</div>" +
-          '<div class="filter-group">' +
-            '<span class="filter-group__label">Code required</span>' +
-            '<div class="chips">' + chips("coding", r.filters.coding) + "</div>" +
-          "</div>" +
-        "</div>" +
-        '<p class="filter-count" id="filter-count" role="status"></p>' +
-        '<div class="roles" id="roles">' + cards + "</div>" +
+        '<div class="ledger">' + head + items + "</div>" +
+        '<p class="hint">Click any row to open it.</p>' +
       "</section>" +
 
       '<section class="section">' +
@@ -370,8 +320,7 @@
           '<span class="note__label">The cheapest raise on this page</span>' +
           "<p>" + r.payNote + "</p>" +
         "</div>" +
-        '<p class="caveat"><b>On the salary figures &mdash; reviewed ' + r.salaryNote.reviewed + ".</b> " +
-          r.salaryNote.body + "</p>" +
+        '<p class="sources">' + r.sources + "</p>" +
       "</section>" +
 
       pager("#/roles") +
@@ -379,46 +328,18 @@
   }
 
   function wireRoles() {
-    var state = { distance: "all", coding: "all" };
-    var cards = Array.prototype.slice.call(document.querySelectorAll(".role"));
-    var count = document.getElementById("filter-count");
-    if (!cards.length || !count) return;
-
-    function apply() {
-      var shown = 0;
-      cards.forEach(function (card) {
-        var ok = (state.distance === "all" || card.dataset.distance === state.distance) &&
-                 (state.coding === "all" || card.dataset.coding === state.coding);
-        card.hidden = !ok;
-        if (ok) shown++;
-      });
-
-      count.textContent = shown === cards.length
-        ? "Showing all " + cards.length + " roles."
-        : shown === 0
-          ? "No role matches both filters. Try widening one of them."
-          : "Showing " + shown + " of " + cards.length + " roles.";
-    }
-
-    document.querySelectorAll(".chip").forEach(function (chip) {
-      chip.addEventListener("click", function () {
-        var group = chip.dataset.filter;
-        state[group] = chip.dataset.value;
-        document.querySelectorAll('.chip[data-filter="' + group + '"]').forEach(function (c) {
-          c.setAttribute("aria-pressed", String(c === chip));
-        });
-        apply();
+    document.querySelectorAll(".ledger__row").forEach(function (row) {
+      row.addEventListener("click", function () {
+        var body = document.getElementById(row.getAttribute("aria-controls"));
+        var open = row.getAttribute("aria-expanded") === "true";
+        row.setAttribute("aria-expanded", String(!open));
+        body.hidden = open;
       });
     });
-
-    apply();
   }
 
   /* ---- Step 3: the ladder ------------------------------------------------ */
 
-  /* Your current rung is the first one you have not cleared. A rung only
-     counts as cleared on a confident yes to every question about it —
-     "sort of" is not a pass, because the checkpoint will find out. */
   function scoreAssessment(answers) {
     var qs = CONTENT.ladder.assessment.questions;
     for (var n = 1; n <= CONTENT.ladder.rungs.length; n++) {
@@ -448,13 +369,11 @@
         "</div>";
     }).join("");
 
-    return '<div class="assess__body">' +
-      '<p class="assess__lede">' + a.lede + "</p>" +
+    return '<p class="assess__lede">' + a.lede + "</p>" +
       '<fieldset class="qs" id="assess-form">' + qs + "</fieldset>" +
       '<div class="assess__actions">' +
-        '<button class="btn" type="button" id="assess-submit" disabled>See where I am</button>' +
+        '<button class="btn" type="button" id="assess-submit" disabled>Show me where to start</button>' +
         '<span class="assess__progress" id="assess-progress" role="status">0 of ' + a.questions.length + " answered</span>" +
-      "</div>" +
       "</div>";
   }
 
@@ -463,114 +382,79 @@
     var total = CONTENT.ladder.rungs.length;
 
     if (current > total) {
-      return '<div class="assess__body"><div class="result">' +
-        '<div class="result__head">' +
-          '<p class="result__lead">' + a.doneLead + "</p>" +
-          '<p class="result__why">' + a.doneBody + "</p>" +
-        "</div>" +
+      return '<div class="result">' +
+        '<p class="result__lead">' + a.doneLead + "</p>" +
+        '<p class="result__why">' + a.doneBody + "</p>" +
         '<div class="assess__actions">' +
           '<a class="btn" href="#/hired">Go to step 4</a>' +
           '<button class="btn btn--quiet" type="button" id="assess-retake">' + a.retake + "</button>" +
         "</div>" +
-        "</div></div>";
+        "</div>";
     }
 
     var rung = rungByN(current);
     var next = rungByN(current + 1);
 
     var why = current === 1
-      ? "Starting at the first rung is the normal result, not a bad one. It is two weeks of work."
-      : "Rungs 1 to " + (current - 1) + " are already behind you. Skip them entirely.";
+      ? "Most people start here. It's two weeks."
+      : "Rungs 1 to " + (current - 1) + " are behind you. Skip them.";
 
     var third = next
-      ? { label: "Then, and only then", body: "Move to rung " + next.n + ", " + next.name.toLowerCase() + " &mdash; " + next.time + "." }
-      : { label: "Then, and only then", body: 'You will have cleared the ladder. <a href="#/hired">Step 4</a> turns it into a job.' };
+      ? "Then move to rung " + next.n + ", " + next.name.toLowerCase() + ", which is " + next.time + "."
+      : 'After that you\'ve finished the ladder, and <a href="#/hired">step 4</a> turns it into a job.';
 
-    return '<div class="assess__body"><div class="result">' +
-      '<div class="result__head">' +
-        '<p class="result__lead">' + a.resultLead + "</p>" +
-        '<p class="result__rung">Rung ' + rung.n + " &mdash; " + rung.name + "</p>" +
-        '<p class="result__why">' + why + "</p>" +
-      "</div>" +
+    return '<div class="result">' +
+      '<p class="result__lead">' + a.resultLead + "</p>" +
+      '<p class="result__rung">Rung ' + rung.n + " &mdash; " + rung.name + "</p>" +
+      '<p class="result__why">' + why + "</p>" +
 
       '<div class="actions">' +
         '<div class="action">' +
           '<span class="action__label">Learn this</span>' +
           '<span class="action__body"><a href="' + rung.resource.url + '" target="_blank" rel="noopener">' +
-            rung.resource.name + "</a> &mdash; about " + rung.time + ".</span>" +
+            rung.resource.name + "</a>, about " + rung.time + ".</span>" +
         "</div>" +
         '<div class="action">' +
           '<span class="action__label">Then prove it</span>' +
           '<span class="action__body">' + rung.checkpoint + "</span>" +
         "</div>" +
         '<div class="action">' +
-          '<span class="action__label">' + third.label + "</span>" +
-          '<span class="action__body">' + third.body + "</span>" +
+          '<span class="action__label">After that</span>' +
+          '<span class="action__body">' + third + "</span>" +
         "</div>" +
       "</div>" +
 
       '<div class="assess__actions">' +
         '<button class="btn btn--quiet" type="button" id="assess-retake">' + a.retake + "</button>" +
       "</div>" +
-      "</div></div>";
+      "</div>";
   }
 
   function renderLadder() {
     var l = CONTENT.ladder;
     var step = stepByRoute("#/ladder");
-    var progress = loadProgress();
-    // Open the rung you are on. If the ladder is already cleared, open none —
-    // auto-opening rung 1 would contradict the result we just gave.
-    var openRung = progress.current
-      ? (progress.current <= l.rungs.length ? progress.current : 0)
-      : 1;
+    var startAt = loadRung();
+    var openRung = startAt && startAt <= l.rungs.length ? startAt : (startAt ? 0 : 1);
 
     var rungs = l.rungs.map(function (rung) {
-      var badge = rung.emphasis ? '<span class="rung__badge">Highest return</span>' : "";
-      var isDone = progress.done.indexOf(rung.n) !== -1;
-      var doneMark = isDone ? '<span class="rung__done-mark">Done</span>' : "";
-      var cls = "rung" + (isDone ? " rung--done" : "");
-      return '<details class="' + cls + '" name="ladder"' + (rung.n === openRung ? " open" : "") + ">" +
-        "<summary>" +
-          '<span class="rung__row">' +
-            '<span class="rung__n">' + rung.n + "</span>" +
-            '<span class="rung__name">' + rung.name + badge + doneMark + "</span>" +
-            '<span class="rung__time">' + rung.time + "</span>" +
-            '<span class="rung__hint">Open</span>' +
-          "</span>" +
-        "</summary>" +
+      var badge = rung.emphasis ? '<span class="rung__badge">Best return</span>' : "";
+      var title = '<span class="panel__n">' + rung.n + "</span>" + rung.name + badge;
 
-        '<div class="rung__body">' +
-          "<p>" + rung.why + "</p>" +
-          "<p>" + rung.whyFinance + "</p>" +
-          '<p class="skipif"><strong>Skip this if</strong> ' + rung.skipIf + "</p>" +
-          block("What to learn", list(rung.learn)) +
-          '<div class="resource">' +
-            '<a href="' + rung.resource.url + '" target="_blank" rel="noopener">' + rung.resource.name + "</a>" +
-            '<span class="resource__note">' + rung.resource.note + "</span>" +
-          "</div>" +
-          '<p class="checkpoint"><span class="checkpoint__label">Checkpoint</span>' + rung.checkpoint + "</p>" +
-          '<div class="assess__actions">' +
-            '<button class="btn' + (isDone ? " btn--quiet" : "") + '" type="button" data-done-rung="' + rung.n + '">' +
-              (isDone ? "Mark as not done" : "Mark rung " + rung.n + " as done") +
-            "</button>" +
-          "</div>" +
+      var body =
+        "<p>" + rung.why + "</p>" +
+        "<p>" + rung.whyFinance + "</p>" +
+        '<p class="skipif"><strong>Skip this if</strong> ' + rung.skipIf + "</p>" +
+        block("What to learn", list(rung.learn)) +
+        '<div class="resource">' +
+          '<a href="' + rung.resource.url + '" target="_blank" rel="noopener">' + rung.resource.name + "</a>" +
+          '<span class="resource__note">' + rung.resource.note + "</span>" +
         "</div>" +
-        "</details>";
+        '<p class="checkpoint"><span class="checkpoint__label">Checkpoint</span>' + rung.checkpoint + "</p>";
+
+      return panel(title, rung.time, body, { group: "ladder", open: rung.n === openRung });
     }).join("");
 
-    var doneCount = progress.done.length;
-    var pct = Math.round((doneCount / l.rungs.length) * 100);
-    var summary = '<div class="ladder__summary">' +
-      "<span>" + doneCount + " of " + l.rungs.length + " rungs done</span>" +
-      '<span class="bar"><span class="bar__fill" style="width:' + pct + '%"></span></span>' +
-      "</div>";
-
-    var assessOpen = progress.current ? " open" : "";
-    var assess = '<details class="assess"' + assessOpen + ">" +
-      "<summary>" + l.assessment.prompt + "</summary>" +
-      (progress.current ? renderAssessmentResult(progress.current) : renderAssessmentForm()) +
-      "</details>";
+    var assessBody = startAt ? renderAssessmentResult(startAt) : renderAssessmentForm();
 
     return '<div class="page">' +
 
@@ -585,11 +469,12 @@
         l.intro.map(function (p) { return "<p>" + p + "</p>"; }).join("") +
       "</section>" +
 
-      '<section class="section">' + assess + "</section>" +
+      '<section class="section" id="assess">' +
+        panel(l.assessment.prompt, "8 questions", assessBody, { open: !!startAt }) +
+      "</section>" +
 
       '<section class="section">' +
         '<p class="eyebrow">Five rungs &mdash; ' + l.totalNote + "</p>" +
-        summary +
         '<div class="ladder">' + rungs + "</div>" +
       "</section>" +
 
@@ -602,6 +487,40 @@
 
       pager("#/ladder") +
       "</div>";
+  }
+
+  function wireLadder() {
+    var a = CONTENT.ladder.assessment;
+    var form = document.getElementById("assess-form");
+
+    if (form) {
+      var submit = document.getElementById("assess-submit");
+      var progressText = document.getElementById("assess-progress");
+
+      form.addEventListener("change", function () {
+        var answered = form.querySelectorAll("input:checked").length;
+        progressText.textContent = answered + " of " + a.questions.length + " answered";
+        submit.disabled = answered < a.questions.length;
+      });
+
+      submit.addEventListener("click", function () {
+        var answers = [];
+        for (var i = 0; i < a.questions.length; i++) {
+          var picked = form.querySelector('input[name="q' + i + '"]:checked');
+          answers[i] = picked ? picked.value : null;
+        }
+        saveRung(scoreAssessment(answers));
+        rerender();
+      });
+    }
+
+    var retake = document.getElementById("assess-retake");
+    if (retake) {
+      retake.addEventListener("click", function () {
+        saveRung(null);
+        rerender();
+      });
+    }
   }
 
   /* ---- Step 4: getting hired --------------------------------------------- */
@@ -671,25 +590,19 @@
       "</section>" +
 
       '<section class="section">' +
-        "<h2>" + h.cv.label + "</h2>" +
-        '<p class="prose">' + h.cv.intro + "</p>" +
-        rules +
-        '<p class="eyebrow">' + h.cv.examplesLabel + "</p>" +
-        swaps +
-      "</section>" +
+        panel(h.cv.label, "4 rules and 4 rewrites",
+          '<p class="prose">' + h.cv.intro + "</p>" + rules +
+          '<p class="eyebrow">' + h.cv.examplesLabel + "</p>" + swaps,
+          { group: "hired", open: true }) +
 
-      '<section class="section">' +
-        "<h2>" + h.portfolio.label + "</h2>" +
-        '<p class="prose">' + h.portfolio.intro + "</p>" +
-        principles +
-        '<p class="eyebrow">' + h.portfolio.projectsLabel + "</p>" +
-        briefs +
-      "</section>" +
+        panel(h.portfolio.label, "3 projects",
+          '<p class="prose">' + h.portfolio.intro + "</p>" + principles +
+          '<p class="eyebrow">' + h.portfolio.projectsLabel + "</p>" + briefs,
+          { group: "hired" }) +
 
-      '<section class="section">' +
-        "<h2>" + h.interview.label + "</h2>" +
-        '<p class="prose">' + h.interview.intro + "</p>" +
-        qa +
+        panel(h.interview.label, "3 questions",
+          '<p class="prose">' + h.interview.intro + "</p>" + qa,
+          { group: "hired" }) +
       "</section>" +
 
       '<section class="section">' +
@@ -705,12 +618,12 @@
 
   function renderNotFound() {
     return '<div class="page">' +
-      '<header class="page__head"><h1 class="page__title">That page does not exist</h1></header>' +
+      '<header class="page__head"><h1 class="page__title">That page doesn\'t exist</h1></header>' +
       '<p class="prose"><a href="#/">Back to the start</a></p>' +
       "</div>";
   }
 
-  /* ---- Router ----------------------------------------------------------- */
+  /* ---- Router ------------------------------------------------------------ */
 
   var routes = {
     "#/":       renderHome,
@@ -720,57 +633,6 @@
     "#/hired":  renderHired
   };
 
-  function wireLadder() {
-    var a = CONTENT.ladder.assessment;
-    var form = document.getElementById("assess-form");
-
-    if (form) {
-      var submit = document.getElementById("assess-submit");
-      var progressText = document.getElementById("assess-progress");
-
-      form.addEventListener("change", function () {
-        var answered = form.querySelectorAll("input:checked").length;
-        progressText.textContent = answered + " of " + a.questions.length + " answered";
-        submit.disabled = answered < a.questions.length;
-      });
-
-      submit.addEventListener("click", function () {
-        var answers = [];
-        for (var i = 0; i < a.questions.length; i++) {
-          var picked = form.querySelector('input[name="q' + i + '"]:checked');
-          answers[i] = picked ? picked.value : null;
-        }
-        var p = loadProgress();
-        p.current = scoreAssessment(answers);
-        saveProgress(p);
-        rerender();
-      });
-    }
-
-    var retake = document.getElementById("assess-retake");
-    if (retake) {
-      retake.addEventListener("click", function () {
-        var p = loadProgress();
-        p.current = null;
-        saveProgress(p);
-        rerender();
-      });
-    }
-
-    document.querySelectorAll("[data-done-rung]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var n = Number(btn.dataset.doneRung);
-        var p = loadProgress();
-        var at = p.done.indexOf(n);
-        if (at === -1) p.done.push(n); else p.done.splice(at, 1);
-        p.done.sort(function (x, y) { return x - y; });
-        saveProgress(p);
-        rerender();
-      });
-    });
-  }
-
-  /* Anything that needs event listeners after its markup is in the DOM. */
   var afterRender = {
     "#/roles": wireRoles,
     "#/ladder": wireLadder
@@ -804,8 +666,6 @@
     if (!(opts && opts.keepScroll)) window.scrollTo(0, 0);
   }
 
-  /* Re-render after a progress change without throwing the reader back
-     to the top of the page. */
   function rerender() {
     var y = window.scrollY;
     route({ keepScroll: true });
